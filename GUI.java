@@ -7,22 +7,57 @@ import java.sql.SQLWarning;
 import java.util.Scanner;
 
 public class GUI {
+    // Database connection details
+    private static final String CONNECTION_URL = "jdbc:sqlserver://cxp-sql-03\\txk498;"
+                                                + "database=FantasySoccerDB;"
+                                                + "user=dbuser;"
+                                                + "password=csds341143sdsc;"
+                                                + "encrypt=true;"
+                                                + "trustServerCertificate=true;"
+                                                + "loginTimeout=15;";
+
     public static void main(String[] args) {
-        // Connection URL with parameters as per the document
-        String connectionUrl = "jdbc:sqlserver://cxp-sql-03\\txk498;"  // Adjust server name as needed
-                             + "database=FantasySoccerDB;"                  // Change database name if necessary
-                             + "user=dbuser;"
-                             + "password=csds341143sdsc;"               // Replace with actual password
-                             + "encrypt=true;"
-                             + "trustServerCertificate=true;"
-                             + "loginTimeout=15;";
-
-
-            try (Connection connection = DriverManager.getConnection(connectionUrl)) {
-            System.out.println("Connected to the database successfully!");
+        try (Connection connection = DriverManager.getConnection(CONNECTION_URL)) {
+            System.out.println("Connected to the database!");
 
             Scanner scanner = new Scanner(System.in);
+            while (true) {
+                System.out.println("\n=== Fantasy Soccer CLI ===");
+                System.out.println("1. Manage User's Fantasy Team");
+                System.out.println("2. Calculate Fantasy Score for a User's Team");
+                System.out.println("3. Insert a New User and Show Result");
+                System.out.println("4. Exit");
+                System.out.print("Select an option: ");
+                int choice = scanner.nextInt();
+                scanner.nextLine(); // Consume newline
 
+                switch (choice) {
+                    case 1:
+                        manageUserTeam(connection, scanner);
+                        break;
+                    case 2:
+                        calculateFantasyScore(connection, scanner);
+                        break;
+                    case 3:
+                        insertAndShowUser(connection, scanner);
+                        break;
+                    case 4:
+                        System.out.println("Exiting... Goodbye!");
+                        return;
+                    default:
+                        System.out.println("Invalid choice. Please try again.");
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Database error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Use Case 1: Manage User's Fantasy Team
+     */
+    private static void manageUserTeam(Connection connection, Scanner scanner) {
+        try {
             // Prompt user for inputs
             System.out.print("Enter operation (INSERT, DELETE, EXCHANGE): ");
             String operation = scanner.nextLine().toUpperCase();
@@ -82,10 +117,69 @@ public class GUI {
             } catch (SQLException e) {
                 System.out.println("Error executing stored procedure: " + e.getMessage());
             }
-
-        } catch (SQLException e) {
-            System.out.println("Database error: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Error managing user's team: " + e.getMessage());
         }
+    }
 
+    /**
+     * Use Case 2: Calculate Fantasy Score for a User's Team
+     */
+    private static void calculateFantasyScore(Connection connection, Scanner scanner) {
+        try {
+            System.out.print("Enter user's email: ");
+            String email = scanner.nextLine();
+
+            String sql = "{CALL GetUserFantasyScore(?)}";
+            try (CallableStatement stmt = connection.prepareCall(sql)) {
+                stmt.setString(1, email);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        System.out.println("User Email: " + rs.getString("user_email"));
+                        System.out.println("Total Fantasy Score: " + rs.getInt("total_fantasy_score"));
+                    } else {
+                        System.out.println("No data found for the provided email.");
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error while calculating fantasy score: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Use Case 3: Insert a New User and Show Result
+     */
+    private static void insertAndShowUser(Connection connection, Scanner scanner) {
+        try {
+            System.out.print("Enter first name: ");
+            String fName = scanner.nextLine();
+
+            System.out.print("Enter last name: ");
+            String lName = scanner.nextLine();
+
+            System.out.print("Enter email: ");
+            String email = scanner.nextLine();
+
+            String sql = "{CALL InsertAndShowUser(?, ?, ?)}";
+            try (CallableStatement stmt = connection.prepareCall(sql)) {
+                stmt.setString(1, fName);
+                stmt.setString(2, lName);
+                stmt.setString(3, email);
+
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        System.out.println("New User Inserted:");
+                        System.out.println("First Name: " + rs.getString("f_name"));
+                        System.out.println("Last Name: " + rs.getString("l_name"));
+                        System.out.println("Email: " + rs.getString("email"));
+                    } else {
+                        System.out.println("User insertion failed.");
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error while inserting user: " + e.getMessage());
+        }
     }
 }
