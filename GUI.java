@@ -26,7 +26,11 @@ public class GUI {
                 System.out.println("1. Manage User's Fantasy Team");
                 System.out.println("2. Calculate Fantasy Score for a User's Team");
                 System.out.println("3. Insert a New User and Show Result");
-                System.out.println("4. Exit");
+                System.out.println("4. View Players by Team");
+                System.out.println("5. View Players in Your User Team");
+                System.out.println("6. Insert Match and Update Fantasy Scores"); // New option
+                System.out.println("7. Exit");
+
                 System.out.print("Select an option: ");
                 int choice = scanner.nextInt();
                 scanner.nextLine(); // Consume newline
@@ -42,6 +46,15 @@ public class GUI {
                         insertAndShowUser(connection, scanner);
                         break;
                     case 4:
+                        viewPlayersByTeam(connection, scanner);
+                        break;
+                    case 5:
+                        viewUserTeamPlayers(connection, scanner);
+                        break;
+                    case 6:
+                        insertMatchAndUpdateScores(connection, scanner); // New option
+                        break;
+                    case 7:
                         System.out.println("Exiting... Goodbye!");
                         return;
                     default:
@@ -58,7 +71,6 @@ public class GUI {
      */
     private static void manageUserTeam(Connection connection, Scanner scanner) {
         try {
-            // Prompt user for inputs
             System.out.print("Enter operation (INSERT, DELETE, EXCHANGE): ");
             String operation = scanner.nextLine().toUpperCase();
 
@@ -89,24 +101,20 @@ public class GUI {
                 newTeamName = scanner.nextLine();
             }
 
-            // Call stored procedure
             String sql = "{CALL ManageUserTeam(?, ?, ?, ?, ?, ?, ?, ?)}";
 
             try (CallableStatement callableStatement = connection.prepareCall(sql)) {
-                // Set parameters
-                callableStatement.setString(1, operation); // Operation
-                callableStatement.setString(2, email);    // User email
-                callableStatement.setString(3, fName);    // Player first name
-                callableStatement.setString(4, lName);    // Player last name
-                callableStatement.setString(5, teamName); // Player's team name
-                callableStatement.setString(6, newFName); // New player first name (optional)
-                callableStatement.setString(7, newLName); // New player last name (optional)
-                callableStatement.setString(8, newTeamName); // New player's team name (optional)
+                callableStatement.setString(1, operation);
+                callableStatement.setString(2, email);
+                callableStatement.setString(3, fName);
+                callableStatement.setString(4, lName);
+                callableStatement.setString(5, teamName);
+                callableStatement.setString(6, newFName);
+                callableStatement.setString(7, newLName);
+                callableStatement.setString(8, newTeamName);
 
-                // Execute the procedure
                 callableStatement.execute();
 
-                // Capture and print warnings
                 SQLWarning warning = callableStatement.getWarnings();
                 while (warning != null) {
                     System.out.println("Message: " + warning.getMessage());
@@ -180,6 +188,115 @@ public class GUI {
             }
         } catch (SQLException e) {
             System.out.println("Error while inserting user: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Use Case 4: View Players by Team
+     */
+    private static void viewPlayersByTeam(Connection connection, Scanner scanner) {
+        try {
+            System.out.print("Enter team name: ");
+            String teamName = scanner.nextLine();
+
+            String sql = "{CALL GetPlayersByTeam(?)}";
+            try (CallableStatement callableStatement = connection.prepareCall(sql)) {
+                callableStatement.setString(1, teamName);
+
+                try (ResultSet rs = callableStatement.executeQuery()) {
+                    System.out.println("\nPlayers in Team: " + teamName);
+                    System.out.printf("%-20s %-10s %-10s\n", "Name", "Position", "FantasyScore");
+
+                    while (rs.next()) {
+                        String name = rs.getString("FirstName") + " " + rs.getString("LastName");
+                        String position = rs.getString("Position");
+                        int fantasyScore = rs.getInt("FantasyScore");
+                        System.out.printf("%-20s %-10s %-10d\n", name, position, fantasyScore);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error viewing players by team: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Use Case 5: View Players in the User's Team
+     */
+    private static void viewUserTeamPlayers(Connection connection, Scanner scanner) {
+        try {
+            System.out.print("Enter your email: ");
+            String userEmail = scanner.nextLine();
+
+            String sql = "{CALL GetUserTeamPlayers(?)}";
+            try (CallableStatement callableStatement = connection.prepareCall(sql)) {
+                callableStatement.setString(1, userEmail);
+
+                try (ResultSet rs = callableStatement.executeQuery()) {
+                    System.out.println("\nPlayers in Your Team:");
+                    System.out.printf("%-20s %-10s %-10s\n", "Name", "Position", "FantasyScore");
+
+                    while (rs.next()) {
+                        String name = rs.getString("FirstName") + " " + rs.getString("LastName");
+                        String position = rs.getString("Position");
+                        int fantasyScore = rs.getInt("FantasyScore");
+                        System.out.printf("%-20s %-10s %-10d\n", name, position, fantasyScore);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error viewing user team players: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Use Case 6: Insert Match and Update Fantasy Scores
+     */
+    private static void insertMatchAndUpdateScores(Connection connection, Scanner scanner) {
+        try {
+            // Get user input
+            System.out.print("Enter team 1 name: ");
+            String team1 = scanner.nextLine();
+    
+            System.out.print("Enter team 2 name: ");
+            String team2 = scanner.nextLine();
+    
+            System.out.print("Enter team 1 goals: ");
+            int team1Goals = scanner.nextInt();
+    
+            System.out.print("Enter team 2 goals: ");
+            int team2Goals = scanner.nextInt();
+    
+            scanner.nextLine(); // Consume newline left-over
+            System.out.println("Enter goal details as 'FirstName LastName:numGoals', separated by commas:");
+            String goalDetails = scanner.nextLine();
+    
+            // Call the stored procedure
+            String sql = "{CALL InsertMatchAndUpdateScores(?, ?, ?, ?, ?)}";
+            try (CallableStatement callableStatement = connection.prepareCall(sql)) {
+                callableStatement.setString(1, team1);
+                callableStatement.setString(2, team2);
+                callableStatement.setInt(3, team1Goals);
+                callableStatement.setInt(4, team2Goals);
+                callableStatement.setString(5, goalDetails);
+    
+                callableStatement.execute();
+    
+                // Handle warnings
+                SQLWarning warning = callableStatement.getWarnings();
+                while (warning != null) {
+                    System.out.println("Message: " + warning.getMessage());
+                    warning = warning.getNextWarning();
+                }
+    
+                System.out.println("Match and fantasy scores updated successfully!");
+            } catch (SQLException e) {
+                // Handle database-related errors
+                System.out.println("Error executing stored procedure: " + e.getMessage());
+            }
+        } catch (Exception e) {
+            // Handle generic input errors
+            System.out.println("Error reading input: " + e.getMessage());
         }
     }
 }
