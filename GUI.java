@@ -27,7 +27,9 @@ public class GUI {
                 System.out.println("2. Calculate Fantasy Score for a User's Team");
                 System.out.println("3. Insert a New User and Show Result");
                 System.out.println("4. View Players by Team");
-                System.out.println("5. Exit");
+                System.out.println("5. View Players in Your User Team"); // New option
+                System.out.println("6. Exit");
+
                 
                 System.out.print("Select an option: ");
                 int choice = scanner.nextInt();
@@ -47,11 +49,15 @@ public class GUI {
                         viewPlayersByTeam(connection, scanner);
                         break;
                     case 5:
+                        viewUserTeamPlayers(connection, scanner); // New option
+                        break;
+                    case 6:
                         System.out.println("Exiting... Goodbye!");
                         return;
                     default:
                         System.out.println("Invalid choice. Please try again.");
                 }
+                
                 
             }
         } catch (SQLException e) {
@@ -233,6 +239,54 @@ private static void viewPlayersByTeam(Connection connection, Scanner scanner) {
         }
     } catch (SQLException e) {
         System.out.println("Error viewing players by team: " + e.getMessage());
+    }
+}
+
+
+/**
+ * View Players in the User's Team
+ */
+private static void viewUserTeamPlayers(Connection connection, Scanner scanner) {
+    try {
+        // Prompt user for their email
+        System.out.print("Enter your email: ");
+        String userEmail = scanner.nextLine();
+
+        // Prepare the SQL call to the stored procedure
+        String sql = "{CALL GetUserTeamPlayers(?)}";
+
+        try (CallableStatement callableStatement = connection.prepareCall(sql)) {
+            // Set the input parameter
+            callableStatement.setString(1, userEmail);
+
+            // Execute the procedure
+            try (ResultSet rs = callableStatement.executeQuery()) {
+                // Display results
+                System.out.println("\nPlayers in Your Team:");
+                System.out.println("---------------------------------------------");
+                System.out.printf("%-20s %-10s %-10s\n", "Name", "Position", "FantasyScore");
+
+                boolean hasResults = false;
+
+                // Process the result set
+                while (rs.next()) {
+                    hasResults = true;
+                    String name = rs.getString("FirstName") + " " + rs.getString("LastName");
+                    String position = rs.getString("Position");
+                    int fantasyScore = rs.getInt("FantasyScore");
+
+                    // Print each player's details
+                    System.out.printf("%-20s %-10s %-10d\n", name, position, fantasyScore);
+                }
+
+                // If no players found, display message
+                if (!hasResults) {
+                    System.out.println("No players found in your team.");
+                }
+            }
+        }
+    } catch (SQLException e) {
+        System.out.println("Error viewing user team players: " + e.getMessage());
     }
 }
 
