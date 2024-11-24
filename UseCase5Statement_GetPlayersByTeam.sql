@@ -15,16 +15,17 @@ BEGIN
             RETURN;
         END
 
-        -- Query to retrieve players in the specified professional team
+        -- Query to retrieve players and calculate average fantasy score
         SELECT 
-            f_name AS FirstName,
-            l_name AS LastName,
-            position AS Position,
-            fantasy_score AS FantasyScore
+            p.f_name AS FirstName,
+            p.l_name AS LastName,
+            p.position AS Position,
+            p.fantasy_score AS FantasyScore,
+            AVG(p.fantasy_score) OVER () AS TeamAverageScore -- Calculate team average
         FROM 
-            player
+            player p
         WHERE 
-            team_name = @team_name;
+            p.team_name = @team_name;
 
         -- Return a message if no players are found
         IF @@ROWCOUNT = 0
