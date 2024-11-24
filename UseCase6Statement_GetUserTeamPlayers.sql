@@ -4,12 +4,15 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    BEGIN TRANSACTION; -- Start transaction
+
     BEGIN TRY
         -- Query to retrieve players in the user's fantasy team
         IF NOT EXISTS (SELECT 1 FROM users WHERE email = @user_email)
         BEGIN
             -- If the user does not exist, raise an error
             RAISERROR ('No user exists with the specified email.', 16, 1);
+            ROLLBACK TRANSACTION; -- Rollback the transaction
             RETURN;
         END
 
@@ -29,7 +32,11 @@ BEGIN
         IF @@ROWCOUNT = 0
         BEGIN
             RAISERROR ('No players found for the specified user.', 16, 1);
+            ROLLBACK TRANSACTION; -- Rollback the transaction
+            RETURN;
         END
+
+        COMMIT TRANSACTION; -- Commit the transaction
     END TRY
     BEGIN CATCH
         -- Handle errors
@@ -42,7 +49,8 @@ BEGIN
             @ErrorSeverity = ERROR_SEVERITY(),
             @ErrorState = ERROR_STATE();
 
-        -- Print the error message and re-throw the error
+        -- Rollback the transaction and re-throw the error
+        ROLLBACK TRANSACTION;
         PRINT 'An error occurred: ' + @ErrorMessage;
         RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
     END CATCH
