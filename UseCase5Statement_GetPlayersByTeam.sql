@@ -5,9 +5,15 @@ BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
+        -- Check if the team exists
+        IF NOT EXISTS (SELECT 1 FROM team WHERE team_name = @team_name)
+        BEGIN
+            RAISERROR('No team exists with the specified name.', 16, 1);
+            RETURN;
+        END
+
         -- Query to retrieve players in the specified professional team
         SELECT 
-            player_ID,
             f_name AS FirstName,
             l_name AS LastName,
             position AS Position,
