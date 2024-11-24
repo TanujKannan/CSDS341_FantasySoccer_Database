@@ -7,20 +7,21 @@ BEGIN
     BEGIN TRANSACTION; -- Start transaction
 
     BEGIN TRY
-        -- Query to retrieve players in the user's fantasy team
+        -- Check if the user exists
         IF NOT EXISTS (SELECT 1 FROM users WHERE email = @user_email)
         BEGIN
-            -- If the user does not exist, raise an error
             RAISERROR ('No user exists with the specified email.', 16, 1);
             ROLLBACK TRANSACTION; -- Rollback the transaction
             RETURN;
         END
 
+        -- Query to retrieve players and calculate total fantasy score
         SELECT 
             p.f_name AS FirstName,
             p.l_name AS LastName,
             p.position AS Position,
-            p.fantasy_score AS FantasyScore
+            p.fantasy_score AS FantasyScore,
+            SUM(p.fantasy_score) OVER () AS TeamTotalScore -- Calculate team total
         FROM 
             user_team ut
         INNER JOIN 
