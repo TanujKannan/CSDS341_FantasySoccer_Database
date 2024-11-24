@@ -17,54 +17,64 @@ public class GUI {
                                                 + "loginTimeout=15;";
 
     public static void main(String[] args) {
-        try (Connection connection = DriverManager.getConnection(CONNECTION_URL)) {
-            System.out.println("Connected to the database!");
+    try (Connection connection = DriverManager.getConnection(CONNECTION_URL)) {
+        System.out.println("Connected to the database!");
 
-            Scanner scanner = new Scanner(System.in);
-            while (true) {
-                System.out.println("\n=== Fantasy Soccer CLI ===");
-                System.out.println("1. Manage User's Fantasy Team");
-                System.out.println("2. Calculate Fantasy Score for a User's Team");
-                System.out.println("3. Insert a New User and Show Result");
-                System.out.println("4. View Players by Team");
-                System.out.println("5. View Players in Your User Team");
-                System.out.println("6. Insert Match and Update Fantasy Scores"); // New option
-                System.out.println("7. Exit");
+        Scanner scanner = new Scanner(System.in);
+        while (true) {
+            System.out.println("\n=== Fantasy Soccer CLI ===");
+            System.out.println("1. Manage User's Fantasy Team");
+            System.out.println("2. Calculate Fantasy Score for a User's Team");
+            System.out.println("3. Insert a New User and Show Result");
+            System.out.println("4. View Players by Team");
+            System.out.println("5. View Players in Your User Team");
+            System.out.println("6. Insert Match and Update Fantasy Scores");
+            System.out.println("7. Exit");
 
-                System.out.print("Select an option: ");
-                int choice = scanner.nextInt();
-                scanner.nextLine(); // Consume newline
+            System.out.print("Select an option: ");
+            String input = scanner.nextLine(); // Read as a string to handle invalid input
+            int choice;
 
-                switch (choice) {
-                    case 1:
-                        manageUserTeam(connection, scanner);
-                        break;
-                    case 2:
-                        calculateFantasyScore(connection, scanner);
-                        break;
-                    case 3:
-                        insertAndShowUser(connection, scanner);
-                        break;
-                    case 4:
-                        viewPlayersByTeam(connection, scanner);
-                        break;
-                    case 5:
-                        viewUserTeamPlayers(connection, scanner);
-                        break;
-                    case 6:
-                        insertMatchAndUpdateScores(connection, scanner); // New option
-                        break;
-                    case 7:
-                        System.out.println("Exiting... Goodbye!");
-                        return;
-                    default:
-                        System.out.println("Invalid choice. Please try again.");
-                }
+            // Validate the input
+            try {
+                choice = Integer.parseInt(input); // Convert to integer
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Please enter a number between 1 and 7.");
+                continue; // Restart the loop
             }
-        } catch (SQLException e) {
-            System.out.println("Database error: " + e.getMessage());
+
+            // Process the choice
+            switch (choice) {
+                case 1:
+                    manageUserTeam(connection, scanner);
+                    break;
+                case 2:
+                    calculateFantasyScore(connection, scanner);
+                    break;
+                case 3:
+                    insertAndShowUser(connection, scanner);
+                    break;
+                case 4:
+                    viewPlayersByTeam(connection, scanner);
+                    break;
+                case 5:
+                    viewUserTeamPlayers(connection, scanner);
+                    break;
+                case 6:
+                    insertMatchAndUpdateScores(connection, scanner);
+                    break;
+                case 7:
+                    System.out.println("Exiting... Goodbye!");
+                    return;
+                default:
+                    System.out.println("Invalid choice. Please select a number between 1 and 7.");
+            }
         }
+    } catch (SQLException e) {
+        System.out.println("Database error: " + e.getMessage());
     }
+}
+
 
     /**
      * Use Case 1: Manage User's Fantasy Team
@@ -194,60 +204,95 @@ public class GUI {
     /**
      * Use Case 4: View Players by Team
      */
-    private static void viewPlayersByTeam(Connection connection, Scanner scanner) {
-        try {
-            System.out.print("Enter team name: ");
-            String teamName = scanner.nextLine();
-
-            String sql = "{CALL GetPlayersByTeam(?)}";
-            try (CallableStatement callableStatement = connection.prepareCall(sql)) {
-                callableStatement.setString(1, teamName);
-
-                try (ResultSet rs = callableStatement.executeQuery()) {
-                    System.out.println("\nPlayers in Team: " + teamName);
-                    System.out.printf("%-20s %-10s %-10s\n", "Name", "Position", "FantasyScore");
-
-                    while (rs.next()) {
-                        String name = rs.getString("FirstName") + " " + rs.getString("LastName");
-                        String position = rs.getString("Position");
-                        int fantasyScore = rs.getInt("FantasyScore");
-                        System.out.printf("%-20s %-10s %-10d\n", name, position, fantasyScore);
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            System.out.println("Error viewing players by team: " + e.getMessage());
-        }
-    }
-
     /**
-     * Use Case 5: View Players in the User's Team
-     */
-    private static void viewUserTeamPlayers(Connection connection, Scanner scanner) {
-        try {
-            System.out.print("Enter your email: ");
-            String userEmail = scanner.nextLine();
+ * Use Case 4: View Players by Team
+ */
+private static void viewPlayersByTeam(Connection connection, Scanner scanner) {
+    try {
+        System.out.print("Enter team name: ");
+        String teamName = scanner.nextLine();
 
-            String sql = "{CALL GetUserTeamPlayers(?)}";
-            try (CallableStatement callableStatement = connection.prepareCall(sql)) {
-                callableStatement.setString(1, userEmail);
+        String sql = "{CALL GetPlayersByTeam(?)}";
+        try (CallableStatement callableStatement = connection.prepareCall(sql)) {
+            callableStatement.setString(1, teamName);
 
-                try (ResultSet rs = callableStatement.executeQuery()) {
-                    System.out.println("\nPlayers in Your Team:");
-                    System.out.printf("%-20s %-10s %-10s\n", "Name", "Position", "FantasyScore");
+            try (ResultSet rs = callableStatement.executeQuery()) {
+                System.out.println("\nPlayers in Team: " + teamName);
+                System.out.printf("%-20s %-10s %-10s\n", "Name", "Position", "FantasyScore");
 
-                    while (rs.next()) {
-                        String name = rs.getString("FirstName") + " " + rs.getString("LastName");
-                        String position = rs.getString("Position");
-                        int fantasyScore = rs.getInt("FantasyScore");
-                        System.out.printf("%-20s %-10s %-10d\n", name, position, fantasyScore);
-                    }
+                boolean hasResults = false;
+
+                while (rs.next()) {
+                    hasResults = true;
+                    String name = rs.getString("FirstName") + " " + rs.getString("LastName");
+                    String position = rs.getString("Position");
+                    int fantasyScore = rs.getInt("FantasyScore");
+                    System.out.printf("%-20s %-10s %-10d\n", name, position, fantasyScore);
+                }
+
+                if (!hasResults) {
+                    System.out.println("No players found for the specified team.");
                 }
             }
         } catch (SQLException e) {
-            System.out.println("Error viewing user team players: " + e.getMessage());
+            // Handle the "No team exists" error from the stored procedure
+            if (e.getMessage().contains("No team exists")) {
+                System.out.println("Error: No team exists with the specified name.");
+            } else {
+                System.out.println("Error viewing players by team: " + e.getMessage());
+            }
         }
+    } catch (Exception e) {
+        System.out.println("Error viewing players by team: " + e.getMessage());
     }
+}
+
+/**
+ * Use Case 5: View Players in the User's Team
+ */
+private static void viewUserTeamPlayers(Connection connection, Scanner scanner) {
+    try {
+        System.out.print("Enter your email: ");
+        String userEmail = scanner.nextLine();
+
+        String sql = "{CALL GetUserTeamPlayers(?)}";
+        try (CallableStatement callableStatement = connection.prepareCall(sql)) {
+            callableStatement.setString(1, userEmail);
+
+            try (ResultSet rs = callableStatement.executeQuery()) {
+                System.out.println("\nPlayers in Your Team:");
+                System.out.printf("%-20s %-10s %-10s\n", "Name", "Position", "FantasyScore");
+
+                boolean hasResults = false;
+
+                while (rs.next()) {
+                    hasResults = true;
+                    String name = rs.getString("FirstName") + " " + rs.getString("LastName");
+                    String position = rs.getString("Position");
+                    int fantasyScore = rs.getInt("FantasyScore");
+                    System.out.printf("%-20s %-10s %-10d\n", name, position, fantasyScore);
+                }
+
+                if (!hasResults) {
+                    System.out.println("No players found for the specified user.");
+                }
+            }
+        } catch (SQLException e) {
+            // Handle the "No user exists" or "No players found" errors
+            if (e.getMessage().contains("No user exists")) {
+                System.out.println("Error: No user exists with the specified email.");
+            } else if (e.getMessage().contains("No players found")) {
+                System.out.println("Error: No players found for the specified user.");
+            } else {
+                System.out.println("Error viewing user team players: " + e.getMessage());
+            }
+        }
+    } catch (Exception e) {
+        System.out.println("Error viewing user team players: " + e.getMessage());
+    }
+}
+
+
 
     /**
      * Use Case 6: Insert Match and Update Fantasy Scores
