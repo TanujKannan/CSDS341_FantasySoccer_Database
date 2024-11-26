@@ -218,7 +218,8 @@ private static void viewPlayersByTeam(Connection connection, Scanner scanner) {
 
             try (ResultSet rs = callableStatement.executeQuery()) {
                 System.out.println("\nPlayers in Team: " + teamName);
-                System.out.printf("%-20s %-10s %-10s\n", "Name", "Position", "FantasyScore");
+                System.out.printf("%-20s %-10s %-10s %-15s\n", 
+                    "Name", "Position", "FantasyScore", "TeamAverageScore");
 
                 boolean hasResults = false;
 
@@ -227,7 +228,9 @@ private static void viewPlayersByTeam(Connection connection, Scanner scanner) {
                     String name = rs.getString("FirstName") + " " + rs.getString("LastName");
                     String position = rs.getString("Position");
                     int fantasyScore = rs.getInt("FantasyScore");
-                    System.out.printf("%-20s %-10s %-10d\n", name, position, fantasyScore);
+                    double teamAverageScore = rs.getDouble("TeamAverageScore");
+                    System.out.printf("%-20s %-10s %-10d %-15.2f\n", 
+                        name, position, fantasyScore, teamAverageScore);
                 }
 
                 if (!hasResults) {
@@ -247,6 +250,7 @@ private static void viewPlayersByTeam(Connection connection, Scanner scanner) {
     }
 }
 
+
 /**
  * Use Case 5: View Players in the User's Team
  */
@@ -261,7 +265,8 @@ private static void viewUserTeamPlayers(Connection connection, Scanner scanner) 
 
             try (ResultSet rs = callableStatement.executeQuery()) {
                 System.out.println("\nPlayers in Your Team:");
-                System.out.printf("%-20s %-10s %-10s\n", "Name", "Position", "FantasyScore");
+                System.out.printf("%-20s %-10s %-10s %-15s\n", 
+                    "Name", "Position", "FantasyScore", "TeamTotalScore");
 
                 boolean hasResults = false;
 
@@ -270,7 +275,9 @@ private static void viewUserTeamPlayers(Connection connection, Scanner scanner) 
                     String name = rs.getString("FirstName") + " " + rs.getString("LastName");
                     String position = rs.getString("Position");
                     int fantasyScore = rs.getInt("FantasyScore");
-                    System.out.printf("%-20s %-10s %-10d\n", name, position, fantasyScore);
+                    int teamTotalScore = rs.getInt("TeamTotalScore");
+                    System.out.printf("%-20s %-10s %-10d %-15d\n", 
+                        name, position, fantasyScore, teamTotalScore);
                 }
 
                 if (!hasResults) {
@@ -291,6 +298,7 @@ private static void viewUserTeamPlayers(Connection connection, Scanner scanner) 
         System.out.println("Error viewing user team players: " + e.getMessage());
     }
 }
+
 
 
 
